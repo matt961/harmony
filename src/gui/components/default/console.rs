@@ -11,6 +11,7 @@ use crate::{
 use glyph_brush::GlyphCruncher;
 use nalgebra_glm::{Vec2, Vec4};
 use std::cell::{RefCell, RefMut};
+use circular_queue::CircularQueue;
 
 #[derive(Clone)]
 pub enum ModuleType {
@@ -25,6 +26,7 @@ pub struct Console {
     log: Log,
     lines: Vec<(ModuleType, String)>,
     measure_brush: Option<RefCell<glyph_brush::GlyphBrush<'static, ()>>>,
+    frame_times: CircularQueue<f32>,
 }
 
 impl Console {
@@ -36,7 +38,38 @@ impl Console {
             log,
             lines: Vec::new(),
             measure_brush: None,
+            frame_times: CircularQueue::with_capacity(100),
         }
+    }
+
+    pub(crate) fn add_frame_time(&mut self, frame_time: f32) {
+        self.frame_times.push(frame_time);
+    }
+
+    fn calculate_average_frame_time(frame_times: &CircularQueue<f32>) -> f32 {
+        frame_times.iter().sum::<f32>() / frame_times.len() as f32
+    }
+
+    fn build_graph(width: f32, height: f32, frame_times: &CircularQueue<f32>) -> crate::gui::components::Window {
+        let mut padding = PaddingBuilder::new(Vec4::new(10.0, 10.0, 10.0, 10.0));
+        padding
+            .with_child(crate::gui::components::Text {
+                text: format!("Average frame time: {}", Self::calculate_average_frame_time(frame_times)),
+                size: 18.0,
+                position: Vec2::new(0.0, 0.0),
+                color: Color::from_rgb8(255, 140, 0),
+                font: "fantasque.ttf".to_string(),
+            });
+        let mut window_builder = WindowBuilder::new();
+        window_builder
+            .set_border(Some(1), Some(Color::from_rgb(0.8, 0.8, 0.8)), None)
+            .set_size(Vec2::new(width, height))
+            .hide_title_bar()
+            .set_content(
+                padding.build()
+            );
+
+        window_builder.build()
     }
 
     pub fn load(&mut self, asset_manager: &AssetManager) {
@@ -55,11 +88,12 @@ impl Console {
         }
     }
 
-    pub fn info<T>(&mut self, module: ModuleType, message: T)
+    pub fn info<T>(&mut self, _module: ModuleType, _message: T)
     where
         T: Into<String>,
     {
-        self.lines.push((module, message.into()));
+        // Think of where to put this.
+        //self.lines.push((module, message.into()));
     }
 
     fn build_line(
@@ -126,15 +160,19 @@ impl Console {
             }
 
             let mut padding = PaddingBuilder::new(Vec4::new(15.0, 15.0, 20.0, 20.0));
-            padding.with_child(self.log.clone());
+            {
+                let graph = Self::build_graph(200.0, 200.0, &self.frame_times);
+                padding.with_child(graph);
+            }
 
             let window_darkness = 0.2;
             let mut window1 = WindowBuilder::new();
             window1
-                .set_background(crate::gui::core::Background::from(Color::from_rgb(
+                .set_background(crate::gui::core::Background::from(Color::from_rgba(
                     window_darkness,
                     window_darkness,
                     window_darkness,
+                    0.98,
                 )))
                 .set_size(Vec2::new(1024.0, 256.0))
                 .set_margin(0.0, 0.0, 0.0, 0.0)

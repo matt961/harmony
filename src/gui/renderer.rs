@@ -73,7 +73,6 @@ impl Renderer {
                 border_width,
                 border_color,
             } => {
-                // TODO: Move some of these computations to the GPU (?)
                 let quad = renderables::Quad {
                     position: [parent_bounds.x + bounds.x, parent_bounds.y + bounds.y],
                     scale: [bounds.width, bounds.height],

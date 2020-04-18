@@ -188,7 +188,7 @@ impl Application {
         let bounds = crate::gui::core::Rectangle {
             x: 0.0,
             y: 0.0,
-            width: self.renderer.size.width as f32 / self.renderer.window.scale_factor() as f32, // TODO: Use window scale NOT 2.0.
+            width: self.renderer.size.width as f32 / self.renderer.window.scale_factor() as f32,
             height: self.renderer.size.height as f32 / self.renderer.window.scale_factor() as f32, 
         };
         match event {
@@ -245,6 +245,7 @@ impl Application {
                     .iter()
                     .map(|component| component.draw(bounds))
                     .collect();
+                    
                 root_components.extend(self.gui_renderables.clone());
 
                 let root = crate::gui::renderables::Renderable::Group {
@@ -271,6 +272,7 @@ impl Application {
 
                 self.frame_time =
                     Instant::now().duration_since(start).subsec_millis() as f32 / 1000.0;
+                self.console.add_frame_time(self.frame_time);
             }
             _ => (),
         }

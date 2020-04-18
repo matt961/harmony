@@ -15,6 +15,7 @@ pub struct WindowBuilder {
     padding: Option<Vec4>,
     margin: Option<Vec4>,
     title: Option<String>,
+    show_title_bar: Option<bool>,
     content: Option<Box<dyn Component>>,
 }
 
@@ -30,6 +31,7 @@ impl WindowBuilder {
             padding: None,
             margin: None,
             title: None,
+            show_title_bar: None,
             content: None,
         }
     }
@@ -53,6 +55,11 @@ impl WindowBuilder {
 
     pub fn set_size<'a>(&'a mut self, size: Vec2) -> &'a mut Self {
         self.size = Some(Vec2::new(size.x, size.y));
+        self
+    }
+
+    pub fn hide_title_bar<'a>(&'a mut self) -> &'a mut Self {
+        self.show_title_bar = Some(false);
         self
     }
 
@@ -105,6 +112,7 @@ impl WindowBuilder {
 
     pub fn build(self) -> Window {
         let title = self.title.unwrap_or(Default::default());
+        let show_title_bar = self.show_title_bar.unwrap_or(true);
         let background = self.background.unwrap_or(Default::default());
         let position = self.position.unwrap_or(Vec2::zeros());
         let size = self.size.unwrap_or(Vec2::zeros());
@@ -116,6 +124,7 @@ impl WindowBuilder {
         let content = self.content;
         Window {
             title,
+            show_title_bar,
             background,
             position,
             border_radius,
@@ -130,6 +139,7 @@ impl WindowBuilder {
 }
 pub struct Window {
     title: String,
+    show_title_bar: bool,
     position: Vec2,
     size: Vec2,
     background: Background,
@@ -145,6 +155,7 @@ impl Default for Window {
     fn default() -> Self {
         Self {
             title: Default::default(),
+            show_title_bar: true,
             position: Vec2::zeros(),
             size: Vec2::zeros(),
             background: Default::default(),
@@ -174,6 +185,26 @@ impl Component for Window {
             width: self.size.x,
             height: self.size.y - 25.0,
         };
+
+        let mut title_bar = Renderable::None;
+        if self.show_title_bar {
+            title_bar = Renderable::Quad {
+                bounds: Rectangle {
+                    x: 0.0,
+                    y: 0.0,
+                    width: self.size.x,
+                    height: 25.0,
+                },
+                background: Background::from(Color::from_rgb(0.1, 0.1, 0.1)),
+                /// The border radius of the quad
+                border_radius: self.border_radius,
+                /// The border width of the quad
+                border_width: self.border_width,
+                /// The border color of the quad
+                border_color: self.border_color,
+            };
+        } 
+
         Renderable::Group {
             bounds: bounds,
             renderables: vec![
@@ -194,18 +225,7 @@ impl Component for Window {
                     /// The border color of the quad
                     border_color: self.border_color,
                 },
-                Renderable::Quad {
-                    bounds: Rectangle {
-                        x: 0.0,
-                        y: 0.0,
-                        width: self.size.x,
-                        height: 25.0,
-                    },
-                    background: Background::from(Color::from_rgb(0.1, 0.1, 0.1)),
-                    border_radius: 0,
-                    border_width: 0,
-                    border_color: Default::default(),
-                },
+                title_bar,
                 Renderable::Text(crate::gui::renderables::Text {
                     bounds: Rectangle {
                         x: 10.0,
@@ -221,7 +241,7 @@ impl Component for Window {
                 Renderable::Clip {
                     bounds: Rectangle {
                         x: bounds.x + content_bounds.x,
-                        y: bounds.y + content_bounds.y - 25.0,
+                        y: bounds.y + content_bounds.y - if self.show_title_bar { 25.0 } else { 0.0 },
                         ..content_bounds
                     },
                     offset: Vec2::new(0.0, 0.0),

@@ -40,6 +40,13 @@ impl Color {
         Color { r, g, b, a: 1.0 }
     }
 
+    /// Creates a [`Color`] from its RGBA components.
+    ///
+    /// [`Color`]: struct.Color.html
+    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Color {
+        Color { r, g, b, a }
+    }
+
     /// Creates a [`Color`] from its RGB8 components.
     ///
     /// [`Color`]: struct.Color.html
