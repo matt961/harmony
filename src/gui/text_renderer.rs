@@ -38,8 +38,8 @@ impl TextRenderer {
                 let section = wgpu_glyph::Section {
                     text: &*renderable.text,
                     screen_position: (
-                        (renderable.bounds.x * scale_factor).round(),
-                        (renderable.bounds.y * scale_factor).round(),
+                        ((renderable.bounds.x) * scale_factor).round(),
+                        ((renderable.bounds.y) * scale_factor).round(),
                     ),
                     color: renderable.color.into_linear(),
                     scale: wgpu_glyph::Scale {
@@ -80,7 +80,7 @@ impl TextRenderer {
                     transformation.as_slice().try_into().unwrap(),
                     wgpu_glyph::Region {
                         x: bounds.x as u32,
-                        y: bounds.y as u32,
+                        y: -bounds.y as u32,
                         width: bounds.width as u32,
                         height: bounds.height as u32,
                     },

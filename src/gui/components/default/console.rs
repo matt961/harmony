@@ -161,7 +161,7 @@ impl Console {
 
             let mut padding = PaddingBuilder::new(Vec4::new(15.0, 15.0, 20.0, 20.0));
             {
-                let graph = Self::build_graph(200.0, 200.0, &self.frame_times);
+                let graph = Self::build_graph(400.0, 200.0, &self.frame_times);
                 padding.with_child(graph);
             }
 

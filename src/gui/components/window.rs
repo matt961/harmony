@@ -181,9 +181,9 @@ impl Component for Window {
         };
         let content_bounds = Rectangle {
             x: 0.0,
-            y: 25.0,
+            y: if self.show_title_bar { 25.0 } else { 0.0 },
             width: self.size.x,
-            height: self.size.y - 25.0,
+            height: self.size.y - if self.show_title_bar { 25.0 } else { 0.0 },
         };
 
         let mut title_bar = Renderable::None;
@@ -240,8 +240,8 @@ impl Component for Window {
                 }),
                 Renderable::Clip {
                     bounds: Rectangle {
-                        x: bounds.x + content_bounds.x,
-                        y: bounds.y + content_bounds.y - if self.show_title_bar { 25.0 } else { 0.0 },
+                        x:  0.0,
+                        y: 0.0, //content_bounds.y - if self.show_title_bar { 25.0 } else { 0.0 },
                         ..content_bounds
                     },
                     offset: Vec2::new(0.0, 0.0),

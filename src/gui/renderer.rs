@@ -47,10 +47,11 @@ impl Renderer {
 
     fn match_renderer(
         &mut self,
-        layer: &mut Layer,
         renderable: renderables::Renderable,
         parent_bounds: Rectangle,
-    ) {
+    ) -> (Vec<renderables::Quad>, Vec<renderables::Text>) {
+        let mut quads = Vec::new();
+        let mut texts = Vec::new();
         match renderable {
             renderables::Renderable::Group {
                 bounds,
@@ -63,7 +64,9 @@ impl Renderer {
                     height: bounds.height,
                 };
                 for grouped_renderable in renderables {
-                    self.match_renderer(layer, grouped_renderable, calculate_bounds);
+                    let (nested_quads, nested_text) = self.match_renderer(grouped_renderable, calculate_bounds);
+                    quads.extend(nested_quads);
+                    texts.extend(nested_text);
                 }
             }
             renderables::Renderable::Quad {
@@ -83,10 +86,10 @@ impl Renderer {
                     border_width: border_width as f32,
                     border_color: border_color.into_linear(),
                 };
-                layer.quads.push(quad);
+                quads.push(quad);
             }
             renderables::Renderable::Text(text) => {
-                layer.text.push(renderables::Text {
+                texts.push(renderables::Text {
                     bounds: crate::gui::core::Rectangle {
                         x: parent_bounds.x + text.bounds.x,
                         y: parent_bounds.y + text.bounds.y,
@@ -100,21 +103,25 @@ impl Renderer {
                 offset,
                 content,
             } => {
-                let mut new_layer = Layer::new(bounds);
-                self.match_renderer(
-                    &mut new_layer,
+                let new_layer = Layer::new(bounds);
+                self.layers.push(new_layer);
+                let (layer_quads, layer_texts) = self.match_renderer(
                     content.deref().clone(),
                     Rectangle {
-                        x: bounds.x - offset.x,
-                        y: bounds.y - offset.y,
+                        x: parent_bounds.x + bounds.x - offset.x,
+                        y: parent_bounds.y + bounds.y - offset.y,
                         width: bounds.width,
                         height: bounds.height,
                     },
                 );
-                self.layers.push(new_layer);
+                let new_layer = self.layers.last_mut().unwrap();
+                new_layer.quads.extend(layer_quads);
+                new_layer.text.extend(layer_texts);
             }
             _ => {}
         }
+
+        (quads, texts)
     }
 
     pub fn draw(
@@ -142,10 +149,11 @@ impl Renderer {
 
         let parent_bounds = bounds.unwrap_or(Default::default());
 
-        self.match_renderer(&mut base_layer, renderable, parent_bounds);
-
+        let (quads, texts) = self.match_renderer(renderable, parent_bounds);
+        base_layer.quads.extend(quads);
+        base_layer.text.extend(texts);
         self.layers.insert(0, base_layer);
-
+ 
         for layer in self.layers.iter() {
             let bounds = layer.bounds * scale_factor;
 
