@@ -270,8 +270,7 @@ impl Application {
 
                 std::thread::yield_now();
 
-                self.frame_time =
-                    Instant::now().duration_since(start).subsec_millis() as f32 / 1000.0;
+                self.frame_time = start.elapsed().as_secs_f32() * 1000.0; // seconds to ms
                 self.console.add_frame_time(self.frame_time);
             }
             _ => (),

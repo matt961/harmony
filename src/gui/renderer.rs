@@ -153,7 +153,7 @@ impl Renderer {
         base_layer.quads.extend(quads);
         base_layer.text.extend(texts);
         self.layers.insert(0, base_layer);
- 
+
         for layer in self.layers.iter() {
             let bounds = layer.bounds * scale_factor;
 

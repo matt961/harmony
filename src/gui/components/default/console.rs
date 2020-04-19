@@ -27,6 +27,7 @@ pub struct Console {
     lines: Vec<(ModuleType, String)>,
     measure_brush: Option<RefCell<glyph_brush::GlyphBrush<'static, ()>>>,
     frame_times: CircularQueue<f32>,
+    graph: super::Graph,
 }
 
 impl Console {
@@ -38,7 +39,8 @@ impl Console {
             log,
             lines: Vec::new(),
             measure_brush: None,
-            frame_times: CircularQueue::with_capacity(100),
+            frame_times: CircularQueue::with_capacity(400),
+            graph: super::Graph::new(Vec2::new(0.0, 0.0), 400.0, 100.0, 0.0, Vec::new()),
         }
     }
 
@@ -50,26 +52,34 @@ impl Console {
         frame_times.iter().sum::<f32>() / frame_times.len() as f32
     }
 
-    fn build_graph(width: f32, height: f32, frame_times: &CircularQueue<f32>) -> crate::gui::components::Window {
+    fn build_graph(width: f32, height: f32, frame_times: &CircularQueue<f32>) -> crate::gui::components::default::Graph {
+        let mut vec_frame_times = Vec::new();
+
+        for frame_time in frame_times.iter() {
+            vec_frame_times.push(*frame_time);
+        }
+        
+        let mut graph = crate::gui::components::default::Graph::new(
+            Vec2::new(0.0, 0.0),
+            width,
+            100.0,
+            Self::calculate_average_frame_time(frame_times),
+            vec_frame_times,
+        );
+        graph.update(0.0);
+
         let mut padding = PaddingBuilder::new(Vec4::new(10.0, 10.0, 10.0, 10.0));
-        padding
-            .with_child(crate::gui::components::Text {
-                text: format!("Average frame time: {}", Self::calculate_average_frame_time(frame_times)),
-                size: 18.0,
-                position: Vec2::new(0.0, 0.0),
-                color: Color::from_rgb8(255, 140, 0),
-                font: "fantasque.ttf".to_string(),
-            });
+        //padding
+           // .with_child(graph);
         let mut window_builder = WindowBuilder::new();
         window_builder
-            .set_border(Some(1), Some(Color::from_rgb(0.8, 0.8, 0.8)), None)
             .set_size(Vec2::new(width, height))
-            .hide_title_bar()
-            .set_content(
-                padding.build()
-            );
+            .hide_title_bar();
+            // .set_content(
+            //     graph// padding.build()
+            // );
 
-        window_builder.build()
+        graph
     }
 
     pub fn load(&mut self, asset_manager: &AssetManager) {
@@ -161,8 +171,8 @@ impl Console {
 
             let mut padding = PaddingBuilder::new(Vec4::new(15.0, 15.0, 20.0, 20.0));
             {
-                let graph = Self::build_graph(400.0, 200.0, &self.frame_times);
-                padding.with_child(graph);
+                //let graph = Self::build_graph(400.0, 200.0, &self.frame_times);
+                //padding.with_child(graph);
             }
 
             let window_darkness = 0.2;
@@ -202,7 +212,21 @@ impl Console {
                 animation.start(0.25, Vec2::new(0.0, -256.0));
                 self.components.push(Box::new(animation));
             }
+            self.components.push(Box::new(self.graph.clone()));
         }
+
+        let mut vec_frame_times = Vec::new();
+        for frame_time in self.frame_times.iter() {
+            vec_frame_times.push(*frame_time);
+        }
+
+        self.graph.frame_times = vec_frame_times;
+        self.graph.update(0.0);
+        if self.components.len() > 1 {
+            self.components.pop();
+            self.components.push(Box::new(self.graph.clone()));
+        }
+
         for component in self.components.iter_mut() {
             component.update(delta_time);
         }
