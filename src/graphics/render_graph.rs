@@ -106,12 +106,12 @@ impl<'a> RenderGraph<'a> {
         self.nodes.get(&name.into()).unwrap()
     }
 
-    pub(crate) fn render<'b>(
+    pub(crate) fn render(
         &'a mut self,
-        renderer: &'b mut Renderer,
-        asset_manager: &'b mut AssetManager,
-        world: &'b mut specs::World,
-        frame: Option<&'b wgpu::SwapChainOutput>,
+        renderer: &'a mut Renderer,
+        asset_manager: &'a mut AssetManager,
+        world: &'a mut specs::World,
+        frame: Option<&'a wgpu::SwapChainOutput>,
     ) -> wgpu::CommandBuffer {
         let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Root Encoder"),
