@@ -37,33 +37,22 @@ unsafe impl Zeroable for SkyboxUniforms {}
 unsafe impl Pod for SkyboxUniforms {}
 
 impl SimplePipeline for SkyboxPipeline {
-    fn prepare(
-        &mut self,
-        _device: &mut wgpu::Device,
-        _pipeline: &Pipeline,
-        _encoder: &mut wgpu::CommandEncoder,
-    ) {
-    }
-
-    fn render(
-        &mut self,
-        frame: Option<&wgpu::SwapChainOutput>,
-        depth: Option<&wgpu::TextureView>,
-        device: &wgpu::Device,
-        pipeline: &Pipeline,
-        _asset_manager: Option<&mut AssetManager>,
-        world: &mut Option<&mut specs::World>,
+    fn prepare<'a>(
+        &'a mut self,
+        device: &'a mut wgpu::Device,
+        _pipeline: &'a Pipeline,
+        _encoder: &'a mut wgpu::CommandEncoder,
+        world: &'a mut specs::World,
+        _asset_manager: &'a mut AssetManager,
         _input: Option<&RenderTarget>,
-        _output: Option<&RenderTarget>,
-    ) -> (wgpu::CommandBuffer, Option<RenderTarget>) {
+    ) {
         // Buffers can/are stored per mesh.
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        let world = world.as_mut().unwrap();
         let skybox = world.try_fetch::<crate::graphics::material::Skybox>();
         if skybox.is_none() {
-            return (encoder.finish(), None);
+            return;
         }
         let skybox = skybox.unwrap();
         let camera_data = world.read_component::<CameraData>();
@@ -76,7 +65,7 @@ impl SimplePipeline for SkyboxPipeline {
         let camera_data = filtered_camera_data.first();
 
         if camera_data.is_none() {
-            return (encoder.finish(), None);
+            return;
         }
 
         let camera_data = camera_data.unwrap();
@@ -97,39 +86,26 @@ impl SimplePipeline for SkyboxPipeline {
             std::mem::size_of::<SkyboxUniforms>() as u64,
         );
 
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.as_ref().unwrap().view,
-                    resolve_target: None,
-                    load_op: wgpu::LoadOp::Clear,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 1.0,
-                    },
-                }],
-                //depth_stencil_attachment: None,
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
-                    attachment: depth.as_ref().unwrap(),
-                    depth_load_op: wgpu::LoadOp::Clear,
-                    depth_store_op: wgpu::StoreOp::Store,
-                    stencil_load_op: wgpu::LoadOp::Clear,
-                    stencil_store_op: wgpu::StoreOp::Store,
-                    clear_depth: 1.0,
-                    clear_stencil: 0,
-                }),
-            });
-            render_pass.set_pipeline(&pipeline.pipeline);
-            render_pass.set_bind_group(0, &self.global_bind_group, &[]);
+        
+    }
 
-            render_pass.set_bind_group(1, skybox.cubemap_bind_group.as_ref().unwrap(), &[]);
-            render_pass.draw(0..3 as u32, 0..1);
+    fn render<'a>(
+        &'a mut self,
+        render_pass: &'a mut wgpu::RenderPass<'a>,
+        pipeline: &'a Pipeline,
+        _asset_manager: &'a mut AssetManager,
+        world: &'a mut specs::World,
+    ) {
+        let skybox = world.try_fetch::<crate::graphics::material::Skybox>();
+        if skybox.is_none() {
+            return;
         }
+        let skybox = skybox.unwrap();
 
-        (encoder.finish(), None)
+        render_pass.set_pipeline(&pipeline.pipeline);
+        render_pass.set_bind_group(0, &self.global_bind_group, &[]);
+        render_pass.set_bind_group(1, skybox.cubemap_bind_group.as_ref().unwrap(), &[]);
+        render_pass.draw(0..3 as u32, 0..1);
     }
 }
 

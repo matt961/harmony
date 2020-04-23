@@ -27,6 +27,7 @@ impl Skybox {
     where
         T: Into<String>,
     {
+        let mut command_buffers = Vec::new();
         // Create a new render graph for this process..
         let mut graph = RenderGraph::new(&app.renderer.device);
 
@@ -54,6 +55,7 @@ impl Skybox {
             false,
             Some(cube_map_target),
             false,
+            true,
         );
 
         let irradiance_size = 64.0;
@@ -76,6 +78,7 @@ impl Skybox {
             vec!["cube_projection"],
             false,
             Some(irradiance_target),
+            true,
             true,
         );
 
@@ -102,6 +105,7 @@ impl Skybox {
                 vec!["irradiance"],
                 false,
                 Some(specular_target),
+                true,
                 true,
             );
         }
@@ -132,6 +136,7 @@ impl Skybox {
             false,
             Some(spec_brdf_texture),
             false,
+            false,
         );
 
         // let output_buffer = app.renderer.device.create_buffer(&wgpu::BufferDescriptor {
@@ -144,8 +149,8 @@ impl Skybox {
         // Should be straight forward enough if we use equirectangular projection.
         // First we need a custom pipeline that will run in here to do the conversion.
         //let output = app.renderer.swap_chain.get_next_texture().unwrap();
-        let mut command_buffers =
-            graph.render(&mut app.renderer, &mut app.asset_manager, None, None);
+        
+        command_buffers.push(graph.render(&mut app.renderer, &mut app.asset_manager, &mut app.current_scene.world, None));
 
         let specular = RenderTarget::new(
             &app.renderer.device,

@@ -3,6 +3,8 @@ pub struct RenderTarget {
     pub texture: wgpu::Texture,
     pub texture_view: wgpu::TextureView,
     pub sampler: wgpu::Sampler,
+    pub format: wgpu::TextureFormat,
+    pub size: wgpu::Extent3d,
 }
 
 impl RenderTarget {
@@ -15,12 +17,14 @@ impl RenderTarget {
         format: wgpu::TextureFormat,
         usage: wgpu::TextureUsage,
     ) -> Self {
+        let size = wgpu::Extent3d {
+            width: width as u32,
+            height: height as u32,
+            depth,
+        };
+
         let texture = device.create_texture(&wgpu::TextureDescriptor {
-            size: wgpu::Extent3d {
-                width: width as u32,
-                height: height as u32,
-                depth,
-            },
+            size,
             mip_level_count: mip_count,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -54,6 +58,8 @@ impl RenderTarget {
                 lod_max_clamp: 100.0,
                 compare: wgpu::CompareFunction::Undefined,
             }),
+            format,
+            size,
         }
     }
 

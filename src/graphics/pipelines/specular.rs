@@ -30,33 +30,20 @@ unsafe impl Pod for Uniforms {}
 pub struct SpecularPipeline {
     constants_buffer: wgpu::Buffer,
     resoultion: f32,
+    bind_group: Option<wgpu::BindGroup>,
 }
 
 impl SimplePipeline for SpecularPipeline {
-    fn prepare(
-        &mut self,
-        _device: &mut wgpu::Device,
-        _pipeline: &Pipeline,
-        _encoder: &mut wgpu::CommandEncoder,
-    ) {
-    }
-
-    fn render(
-        &mut self,
-        _frame: Option<&wgpu::SwapChainOutput>,
-        _depth: Option<&wgpu::TextureView>,
-        device: &wgpu::Device,
-        pipeline: &Pipeline,
-        _asset_manager: Option<&mut AssetManager>,
-        _world: &mut Option<&mut specs::World>,
+    fn prepare<'a>(
+        &'a mut self,
+        device: &'a mut wgpu::Device,
+        pipeline: &'a Pipeline,
+        encoder: &'a mut wgpu::CommandEncoder,
+        world: &'a mut specs::World,
+        asset_manager: &'a mut AssetManager,
         input: Option<&RenderTarget>,
-        output: Option<&RenderTarget>,
-    ) -> (wgpu::CommandBuffer, Option<RenderTarget>) {
-        // Buffers can/are stored per mesh.
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+    ) {
+        self.bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &pipeline.bind_group_layouts[0],
             bindings: &[
                 wgpu::Binding {
@@ -78,30 +65,19 @@ impl SimplePipeline for SpecularPipeline {
                 },
             ],
             label: None,
-        });
+        }));
+    }
 
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &output.as_ref().unwrap().texture_view,
-                    resolve_target: None,
-                    load_op: wgpu::LoadOp::Clear,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 1.0,
-                    },
-                }],
-                depth_stencil_attachment: None,
-            });
-            render_pass.set_pipeline(&pipeline.pipeline);
-            render_pass.set_bind_group(0, &bind_group, &[]);
-            render_pass.draw(0..6, 0..6);
-        }
-
-        (encoder.finish(), None)
+    fn render<'a>(
+        &'a mut self,
+        render_pass: &'a mut wgpu::RenderPass<'a>,
+        pipeline: &'a Pipeline,
+        asset_manager: &'a mut AssetManager,
+        world: &'a mut specs::World,
+    ) {
+        render_pass.set_pipeline(&pipeline.pipeline);
+        render_pass.set_bind_group(0, self.bind_group.as_ref().unwrap(), &[]);
+        render_pass.draw(0..6, 0..6);
     }
 }
 
@@ -210,6 +186,7 @@ impl SimplePipelineDesc for SpecularPipelineDesc {
         SpecularPipeline {
             constants_buffer,
             resoultion: self.resoultion,
+            bind_group: None,
         }
     }
 }

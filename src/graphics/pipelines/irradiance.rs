@@ -9,33 +9,24 @@ use crate::{
 #[derive(Debug)]
 pub struct IrradiancePipeline {
     size: f32,
+    bind_group: Option<wgpu::BindGroup>,
 }
 
 impl SimplePipeline for IrradiancePipeline {
-    fn prepare(
-        &mut self,
-        _device: &mut wgpu::Device,
-        _pipeline: &Pipeline,
-        _encoder: &mut wgpu::CommandEncoder,
-    ) {
-    }
-
-    fn render(
-        &mut self,
-        _frame: Option<&wgpu::SwapChainOutput>,
-        _depth: Option<&wgpu::TextureView>,
-        device: &wgpu::Device,
-        pipeline: &Pipeline,
-        _asset_manager: Option<&mut AssetManager>,
-        _world: &mut Option<&mut specs::World>,
+    fn prepare<'a>(
+        &'a mut self,
+        device: &'a mut wgpu::Device,
+        pipeline: &'a Pipeline,
+        encoder: &'a mut wgpu::CommandEncoder,
+        world: &'a mut specs::World,
+        asset_manager: &'a mut AssetManager,
         input: Option<&RenderTarget>,
-        output: Option<&RenderTarget>,
-    ) -> (wgpu::CommandBuffer, Option<RenderTarget>) {
+    ) {
         // Buffers can/are stored per mesh.
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        self.bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &pipeline.bind_group_layouts[0],
             bindings: &[
                 wgpu::Binding {
@@ -50,66 +41,19 @@ impl SimplePipeline for IrradiancePipeline {
                 },
             ],
             label: None,
-        });
+        }));
+    }
 
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &output.as_ref().unwrap().texture_view,
-                    resolve_target: None,
-                    load_op: wgpu::LoadOp::Clear,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 1.0,
-                    },
-                }],
-                depth_stencil_attachment: None,
-            });
-            render_pass.set_pipeline(&pipeline.pipeline);
-            render_pass.set_bind_group(0, &bind_group, &[]);
-            render_pass.draw(0..6, 0..6);
-        }
-
-        let cube_map = RenderTarget::new(
-            device,
-            self.size,
-            self.size,
-            6,
-            1,
-            wgpu::TextureFormat::Rgba32Float,
-            wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
-        );
-
-        for i in 0..6 {
-            encoder.copy_texture_to_texture(
-                wgpu::TextureCopyView {
-                    texture: &output.as_ref().unwrap().texture,
-                    mip_level: 0,
-                    array_layer: 0,
-                    origin: wgpu::Origin3d {
-                        x: 0,
-                        y: self.size as u32 * i,
-                        z: 0,
-                    },
-                },
-                wgpu::TextureCopyView {
-                    texture: &cube_map.texture,
-                    mip_level: 0,
-                    array_layer: i,
-                    origin: wgpu::Origin3d::ZERO,
-                },
-                wgpu::Extent3d {
-                    width: self.size as u32,
-                    height: self.size as u32,
-                    depth: 1,
-                },
-            );
-        }
-
-        (encoder.finish(), Some(cube_map))
+    fn render<'a>(
+        &'a mut self,
+        render_pass: &'a mut wgpu::RenderPass<'a>,
+        pipeline: &'a Pipeline,
+        asset_manager: &'a mut AssetManager,
+        world: &'a mut specs::World,
+    ) {
+        render_pass.set_pipeline(&pipeline.pipeline);
+        render_pass.set_bind_group(0, self.bind_group.as_ref().unwrap(), &[]);
+        render_pass.draw(0..6, 0..6);
     }
 }
 
@@ -197,6 +141,6 @@ impl SimplePipelineDesc for IrradiancePipelineDesc {
         _device: &wgpu::Device,
         _bind_group_layouts: &Vec<wgpu::BindGroupLayout>,
     ) -> IrradiancePipeline {
-        IrradiancePipeline { size: self.size }
+        IrradiancePipeline { size: self.size, bind_group: None }
     }
 }

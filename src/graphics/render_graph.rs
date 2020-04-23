@@ -9,6 +9,7 @@ pub struct RenderGraphNode {
     pub(crate) pipeline: Pipeline,
     pub(crate) simple_pipeline: Box<dyn SimplePipeline>,
     pub use_output_from_dependency: bool,
+    pub create_cubemap_from_output: bool,
 }
 
 pub struct RenderGraph {
@@ -52,6 +53,7 @@ impl RenderGraph {
         include_local_bindings: bool,
         output: Option<RenderTarget>,
         use_output_from_dependency: bool,
+        create_cubemap_from_output: bool,
     ) {
         let name = name.into();
         let pipeline = pipeline_desc.pipeline(
@@ -69,6 +71,7 @@ impl RenderGraph {
             pipeline,
             simple_pipeline: built_pipeline,
             use_output_from_dependency,
+            create_cubemap_from_output,
         };
         self.nodes.insert(name.clone(), node);
         self.outputs.insert(name.clone(), output);
@@ -105,10 +108,12 @@ impl RenderGraph {
         &mut self,
         renderer: &mut Renderer,
         asset_manager: &mut AssetManager,
-        mut world: Option<&mut specs::World>,
+        world: &mut specs::World,
         frame: Option<&wgpu::SwapChainOutput>,
-    ) -> Vec<wgpu::CommandBuffer> {
-        let mut command_buffers = Vec::new();
+    ) -> wgpu::CommandBuffer {
+        let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Root Encoder"),
+        });
 
         let mut order = Vec::new();
         for (name, _) in self.nodes.iter_mut() {
@@ -142,23 +147,104 @@ impl RenderGraph {
                 }
             }
             let output = self.outputs.get(&name).unwrap().as_ref();
+            
+            node.simple_pipeline.prepare(&mut renderer.device, &node.pipeline, &mut encoder, world, asset_manager, input);
+        
+            {
+                let mut render_pass = if output.is_some() {
+                    // Custom outputs don't get depth for now..
+                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                            attachment: &output.as_ref().unwrap().texture_view,
+                            resolve_target: None,
+                            load_op: wgpu::LoadOp::Clear,
+                            store_op: wgpu::StoreOp::Store,
+                            clear_color: wgpu::Color {
+                                r: 0.0,
+                                g: 0.0,
+                                b: 0.0,
+                                a: 1.0,
+                            },
+                        }],
+                        depth_stencil_attachment: None,
+                    })
+                } else if frame.is_some() {
+                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                            attachment: &frame.as_ref().unwrap().view,
+                            resolve_target: None,
+                            load_op: wgpu::LoadOp::Load,
+                            store_op: wgpu::StoreOp::Store,
+                            clear_color: wgpu::Color {
+                                r: 0.0,
+                                g: 0.0,
+                                b: 0.0,
+                                a: 0.0,
+                            },
+                        }],
+                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
+                            attachment: &renderer.forward_depth,
+                            depth_load_op: wgpu::LoadOp::Load,
+                            depth_store_op: wgpu::StoreOp::Store,
+                            stencil_load_op: wgpu::LoadOp::Load,
+                            stencil_store_op: wgpu::StoreOp::Store,
+                            clear_depth: 1.0,
+                            clear_stencil: 0,
+                        }),
+                    })
+                } else { panic!("RenderGraph Error: Couldn't find an output to attach to the render pass."); };
+                
+                node.simple_pipeline.render(
+                    &mut render_pass,
+                    &node.pipeline,
+                    asset_manager,
+                    world,
+                );
+            }
 
-            let (command_buffer, output) = node.simple_pipeline.render(
-                frame,
-                Some(&renderer.forward_depth),
-                &renderer.device,
-                &node.pipeline,
-                Some(asset_manager),
-                &mut world,
-                input,
-                output,
-            );
-            command_buffers.push(command_buffer);
-            if output.is_some() {
-                self.outputs.insert(name.clone(), output);
+            // This process should mostly happen during load. or with really small textures..
+            if node.create_cubemap_from_output && output.is_some() {
+                let old_output = output.unwrap();
+                let output = RenderTarget::new(
+                    &renderer.device,
+                    old_output.size.width as f32,
+                    (old_output.size.height / 6) as f32, // Weird case because original texture was/should be (width x height * 6)
+                    6,
+                    1,
+                    old_output.format,
+                    wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
+                );
+
+                for i in 0..6 {
+                    encoder.copy_texture_to_texture(
+                        wgpu::TextureCopyView {
+                            texture: &old_output.texture,
+                            mip_level: 0,
+                            array_layer: 0,
+                            origin: wgpu::Origin3d {
+                                x: 0,
+                                y: (old_output.size.height / 6) as u32 * i,
+                                z: 0,
+                            },
+                        },
+                        wgpu::TextureCopyView {
+                            texture: &output.texture,
+                            mip_level: 0,
+                            array_layer: i,
+                            origin: wgpu::Origin3d::ZERO,
+                        },
+                        wgpu::Extent3d {
+                            width: old_output.size.width as u32,
+                            height: old_output.size.height / 6 as u32,
+                            depth: 1,
+                        },
+                    );
+                }
+
+                self.outputs.insert(name.clone(), Some(output));
             }
         }
 
-        command_buffers
+        encoder.finish()
     }
 }

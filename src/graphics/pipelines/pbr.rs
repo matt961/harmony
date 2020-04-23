@@ -6,13 +6,11 @@ use crate::{
     graphics::{
         mesh::MeshVertexData,
         pipeline::VertexStateBuilder,
-        resources::RenderTarget,
-        // renderer::DEPTH_FORMAT,
         Pipeline,
         SimplePipeline,
-        SimplePipelineDesc,
+        SimplePipelineDesc, renderer::DEPTH_FORMAT, resources::RenderTarget,
     },
-    scene::systems::RenderPBR,
+    scene::systems::{PreparePBR, RenderPBR},
     AssetManager,
 };
 
@@ -24,45 +22,43 @@ pub struct PBRPipeline {
 }
 
 impl SimplePipeline for PBRPipeline {
-    fn prepare(
-        &mut self,
-        _device: &mut wgpu::Device,
-        _pipeline: &Pipeline,
-        _encoder: &mut wgpu::CommandEncoder,
+    fn prepare<'a>(
+        &'a mut self,
+        device: &'a mut wgpu::Device,
+        pipeline: &'a Pipeline,
+        encoder: &'a mut wgpu::CommandEncoder,
+        world: &'a mut specs::World,
+        asset_manager: &'a mut AssetManager,
+        _input: Option<&RenderTarget>,
     ) {
+        let mut prepare_pbr = PreparePBR {
+            device,
+            asset_manager,
+            encoder,
+            pipeline,
+            constants_buffer: &self.constants_buffer,
+            lighting_buffer: &self.lighting_buffer,
+            global_bind_group: &self.global_bind_group,
+        };
+        RunNow::setup(&mut prepare_pbr, world);
+        prepare_pbr.run_now(world);
     }
 
-    fn render(
-        &mut self,
-        frame: Option<&wgpu::SwapChainOutput>,
-        depth: Option<&wgpu::TextureView>,
-        device: &wgpu::Device,
-        pipeline: &Pipeline,
-        asset_manager: Option<&mut AssetManager>,
-        world: &mut Option<&mut specs::World>,
-        _input: Option<&RenderTarget>,
-        _output: Option<&RenderTarget>,
-    ) -> (wgpu::CommandBuffer, Option<RenderTarget>) {
-        // Buffers can/are stored per mesh.
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        {
-            let mut render_pbr = RenderPBR {
-                device,
-                asset_manager: asset_manager.as_ref().unwrap(),
-                encoder: &mut encoder,
-                frame_view: &frame.as_ref().unwrap().view,
-                pipeline,
-                constants_buffer: &self.constants_buffer,
-                lighting_buffer: &self.lighting_buffer,
-                global_bind_group: &self.global_bind_group,
-                depth: depth.as_ref().unwrap(),
-            };
-            RunNow::setup(&mut render_pbr, world.as_mut().unwrap());
-            render_pbr.run_now(world.as_mut().unwrap());
-        }
-
-        (encoder.finish(), None)
+    fn render<'a>(
+        &'a mut self,
+        render_pass: &'a mut wgpu::RenderPass<'a>,
+        pipeline: &'a Pipeline,
+        asset_manager: &'a mut AssetManager,
+        world: &'a mut specs::World,
+    ) {
+        let mut render_pbr = RenderPBR {
+            render_pass,
+            asset_manager,
+            pipeline,
+            global_bind_group: &self.global_bind_group,
+        };
+        RunNow::setup(&mut render_pbr, world);
+        render_pbr.run_now(world);
     }
 }
 
@@ -206,16 +202,15 @@ impl SimplePipelineDesc for PBRPipelineDesc {
     }
 
     fn depth_stencil_state_desc(&self) -> Option<wgpu::DepthStencilStateDescriptor> {
-        // Some(wgpu::DepthStencilStateDescriptor {
-        //     format: DEPTH_FORMAT,
-        //     depth_write_enabled: true,
-        //     depth_compare: wgpu::CompareFunction::Less,
-        //     stencil_front: wgpu::StencilStateFaceDescriptor::IGNORE,
-        //     stencil_back: wgpu::StencilStateFaceDescriptor::IGNORE,
-        //     stencil_read_mask: 0,
-        //     stencil_write_mask: 0,
-        // })
-        None
+        Some(wgpu::DepthStencilStateDescriptor {
+            format: DEPTH_FORMAT,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::Less,
+            stencil_front: wgpu::StencilStateFaceDescriptor::IGNORE,
+            stencil_back: wgpu::StencilStateFaceDescriptor::IGNORE,
+            stencil_read_mask: 0,
+            stencil_write_mask: 0,
+        })
     }
 
     fn vertex_state_desc(&self) -> VertexStateBuilder {
