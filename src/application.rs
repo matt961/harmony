@@ -45,7 +45,7 @@ pub struct Application {
     pub(crate) console: crate::gui::components::default::Console,
     pub input: Input,
     pub current_scene: Scene<'static>,
-    pub render_graph: Option<RenderGraph>,
+    pub render_graph: Option<RenderGraph<'static>>,
 }
 
 impl Application {
@@ -118,7 +118,7 @@ impl Application {
     ///
     /// * `app_state` - The app state you created which should implement the AppState trait.
     ///
-    pub fn load<T>(&mut self, app_state: &mut T)
+    pub fn load<T>(&'static mut self, app_state: &'static mut T)
     where
         T: AppState,
     {
@@ -252,7 +252,7 @@ impl Application {
     /// * `control_flow` - a mutable reference to winit's control flow.
     ///
     pub fn run<T>(
-        &mut self,
+        &'static mut self,
         app_state: &mut T,
         event: &Event<'_, ()>,
         _control_flow: &mut ControlFlow, // TODO: Figure out if we actually will use this...

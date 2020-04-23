@@ -1,7 +1,7 @@
 use crate::{
     graphics::{
         pipeline::VertexStateBuilder, resources::RenderTarget, Pipeline, SimplePipeline,
-        SimplePipelineDesc,
+        SimplePipelineDesc, Renderer,
     },
     AssetManager,
 };
@@ -12,20 +12,16 @@ pub struct IrradiancePipeline {
     bind_group: Option<wgpu::BindGroup>,
 }
 
-impl SimplePipeline for IrradiancePipeline {
-    fn prepare<'a>(
+impl<'a> SimplePipeline<'a> for IrradiancePipeline {
+    fn prepare(
         &'a mut self,
         device: &'a mut wgpu::Device,
         pipeline: &'a Pipeline,
-        encoder: &'a mut wgpu::CommandEncoder,
-        world: &'a mut specs::World,
-        asset_manager: &'a mut AssetManager,
+        _encoder: &'a mut wgpu::CommandEncoder,
+        _world: &'a mut specs::World,
+        _asset_manager: &'a mut AssetManager,
         input: Option<&RenderTarget>,
     ) {
-        // Buffers can/are stored per mesh.
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
         self.bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &pipeline.bind_group_layouts[0],
             bindings: &[
@@ -44,12 +40,12 @@ impl SimplePipeline for IrradiancePipeline {
         }));
     }
 
-    fn render<'a>(
+    fn render(
         &'a mut self,
         render_pass: &'a mut wgpu::RenderPass<'a>,
         pipeline: &'a Pipeline,
-        asset_manager: &'a mut AssetManager,
-        world: &'a mut specs::World,
+        _asset_manager: &'a mut AssetManager,
+        _world: &'a mut specs::World,
     ) {
         render_pass.set_pipeline(&pipeline.pipeline);
         render_pass.set_bind_group(0, self.bind_group.as_ref().unwrap(), &[]);
@@ -68,10 +64,10 @@ impl IrradiancePipelineDesc {
     }
 }
 
-impl SimplePipelineDesc for IrradiancePipelineDesc {
+impl<'a> SimplePipelineDesc<'a> for IrradiancePipelineDesc {
     type Pipeline = IrradiancePipeline;
 
-    fn load_shader<'a>(
+    fn load_shader(
         &self,
         asset_manager: &'a crate::AssetManager,
     ) -> &'a crate::graphics::material::Shader {
@@ -138,7 +134,7 @@ impl SimplePipelineDesc for IrradiancePipelineDesc {
 
     fn build(
         self,
-        _device: &wgpu::Device,
+        _renderer: &mut Renderer,
         _bind_group_layouts: &Vec<wgpu::BindGroupLayout>,
     ) -> IrradiancePipeline {
         IrradiancePipeline { size: self.size, bind_group: None }

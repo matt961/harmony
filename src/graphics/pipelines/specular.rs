@@ -1,7 +1,7 @@
 use crate::{
     graphics::{
         material::skybox::SPEC_CUBEMAP_MIP_LEVELS, pipeline::VertexStateBuilder,
-        resources::RenderTarget, Pipeline, SimplePipeline, SimplePipelineDesc,
+        resources::RenderTarget, Pipeline, SimplePipeline, SimplePipelineDesc, Renderer,
     },
     AssetManager,
 };
@@ -33,14 +33,14 @@ pub struct SpecularPipeline {
     bind_group: Option<wgpu::BindGroup>,
 }
 
-impl SimplePipeline for SpecularPipeline {
-    fn prepare<'a>(
+impl<'a> SimplePipeline<'a> for SpecularPipeline {
+    fn prepare(
         &'a mut self,
         device: &'a mut wgpu::Device,
         pipeline: &'a Pipeline,
-        encoder: &'a mut wgpu::CommandEncoder,
-        world: &'a mut specs::World,
-        asset_manager: &'a mut AssetManager,
+        _encoder: &'a mut wgpu::CommandEncoder,
+        _world: &'a mut specs::World,
+        _asset_manager: &'a mut AssetManager,
         input: Option<&RenderTarget>,
     ) {
         self.bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -68,12 +68,12 @@ impl SimplePipeline for SpecularPipeline {
         }));
     }
 
-    fn render<'a>(
+    fn render(
         &'a mut self,
         render_pass: &'a mut wgpu::RenderPass<'a>,
         pipeline: &'a Pipeline,
-        asset_manager: &'a mut AssetManager,
-        world: &'a mut specs::World,
+        _asset_manager: &'a mut AssetManager,
+        _world: &'a mut specs::World,
     ) {
         render_pass.set_pipeline(&pipeline.pipeline);
         render_pass.set_bind_group(0, self.bind_group.as_ref().unwrap(), &[]);
@@ -96,10 +96,10 @@ impl SpecularPipelineDesc {
     }
 }
 
-impl SimplePipelineDesc for SpecularPipelineDesc {
+impl<'a> SimplePipelineDesc<'a> for SpecularPipelineDesc {
     type Pipeline = SpecularPipeline;
 
-    fn load_shader<'a>(
+    fn load_shader(
         &self,
         asset_manager: &'a crate::AssetManager,
     ) -> &'a crate::graphics::material::Shader {
@@ -171,11 +171,11 @@ impl SimplePipelineDesc for SpecularPipelineDesc {
 
     fn build(
         self,
-        device: &wgpu::Device,
+        renderer: &mut Renderer,
         _bind_group_layouts: &Vec<wgpu::BindGroupLayout>,
     ) -> SpecularPipeline {
         // This data needs to be saved and passed onto the pipeline.
-        let constants_buffer = device.create_buffer_with_data(
+        let constants_buffer = renderer.device.create_buffer_with_data(
             bytemuck::bytes_of(&Uniforms {
                 roughness: self.mip_level as f32 / (SPEC_CUBEMAP_MIP_LEVELS - 1) as f32,
                 resoultion: self.resoultion,

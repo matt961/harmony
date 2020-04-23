@@ -5,7 +5,7 @@ use specs::WorldExt;
 use crate::{
     graphics::{
         pipeline::VertexStateBuilder, renderer::DEPTH_FORMAT, resources::RenderTarget, Pipeline,
-        SimplePipeline, SimplePipelineDesc,
+        SimplePipeline, SimplePipelineDesc, Renderer,
     },
     scene::components::CameraData,
     AssetManager,
@@ -36,8 +36,8 @@ impl Default for SkyboxUniforms {
 unsafe impl Zeroable for SkyboxUniforms {}
 unsafe impl Pod for SkyboxUniforms {}
 
-impl SimplePipeline for SkyboxPipeline {
-    fn prepare<'a>(
+impl<'a> SimplePipeline<'a> for SkyboxPipeline {
+    fn prepare(
         &'a mut self,
         device: &'a mut wgpu::Device,
         _pipeline: &'a Pipeline,
@@ -54,7 +54,6 @@ impl SimplePipeline for SkyboxPipeline {
         if skybox.is_none() {
             return;
         }
-        let skybox = skybox.unwrap();
         let camera_data = world.read_component::<CameraData>();
 
         use specs::Join;
@@ -89,33 +88,35 @@ impl SimplePipeline for SkyboxPipeline {
         
     }
 
-    fn render<'a>(
+    fn render(
         &'a mut self,
-        render_pass: &'a mut wgpu::RenderPass<'a>,
-        pipeline: &'a Pipeline,
+        _render_pass: &'a mut wgpu::RenderPass<'a>,
+        _pipeline: &'a Pipeline,
         _asset_manager: &'a mut AssetManager,
-        world: &'a mut specs::World,
+        _world: &'a mut specs::World,
     ) {
-        let skybox = world.try_fetch::<crate::graphics::material::Skybox>();
-        if skybox.is_none() {
-            return;
-        }
-        let skybox = skybox.unwrap();
+        // TODO: Move to system so lifetimes work.
+        
+        // let skybox = world.try_fetch::<crate::graphics::material::Skybox>();
+        // if skybox.is_none() {
+        //     return;
+        // }
+        // let skybox = skybox.as_ref().unwrap();
 
-        render_pass.set_pipeline(&pipeline.pipeline);
-        render_pass.set_bind_group(0, &self.global_bind_group, &[]);
-        render_pass.set_bind_group(1, skybox.cubemap_bind_group.as_ref().unwrap(), &[]);
-        render_pass.draw(0..3 as u32, 0..1);
+        // render_pass.set_pipeline(&pipeline.pipeline);
+        // render_pass.set_bind_group(0, &self.global_bind_group, &[]);
+        // render_pass.set_bind_group(1, skybox.cubemap_bind_group.as_ref().unwrap(), &[]);
+        // render_pass.draw(0..3 as u32, 0..1);
     }
 }
 
 #[derive(Debug, Default)]
 pub struct SkyboxPipelineDesc;
 
-impl SimplePipelineDesc for SkyboxPipelineDesc {
+impl<'a> SimplePipelineDesc<'a> for SkyboxPipelineDesc {
     type Pipeline = SkyboxPipeline;
 
-    fn load_shader<'a>(
+    fn load_shader(
         &self,
         asset_manager: &'a crate::AssetManager,
     ) -> &'a crate::graphics::material::Shader {
@@ -203,16 +204,16 @@ impl SimplePipelineDesc for SkyboxPipelineDesc {
 
     fn build(
         self,
-        device: &wgpu::Device,
-        bind_group_layouts: &Vec<wgpu::BindGroupLayout>,
+        renderer: &'a mut Renderer,
+        bind_group_layouts: &'a Vec<wgpu::BindGroupLayout>,
     ) -> SkyboxPipeline {
         // This data needs to be saved and passed onto the pipeline.
-        let constants_buffer = device.create_buffer_with_data(
+        let constants_buffer = renderer.device.create_buffer_with_data(
             bytemuck::bytes_of(&SkyboxUniforms::default()),
             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         );
 
-        let global_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let global_bind_group = renderer.device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layouts[0],
             bindings: &[wgpu::Binding {
                 binding: 0,

@@ -1,4 +1,4 @@
-use super::{material::Shader, resources::RenderTarget};
+use super::{material::Shader, resources::RenderTarget, Renderer};
 use crate::AssetManager;
 
 #[derive(Debug)]
@@ -13,8 +13,8 @@ pub struct BindGroupWithData {
     pub(crate) bind_group: wgpu::BindGroup,
 }
 
-pub trait SimplePipeline: std::fmt::Debug + Send + Sync + 'static {
-    fn prepare<'a>(
+pub trait SimplePipeline<'a>: std::fmt::Debug + Send + Sync + 'a {
+    fn prepare(
         &'a mut self,
         device: &'a mut wgpu::Device,
         pipeline: &'a Pipeline,
@@ -24,7 +24,7 @@ pub trait SimplePipeline: std::fmt::Debug + Send + Sync + 'static {
         input: Option<&RenderTarget>,
     );
 
-    fn render<'a>(
+    fn render(
         &'a mut self,
         render_pass: &'a mut wgpu::RenderPass<'a>,
         pipeline: &'a Pipeline,
@@ -33,10 +33,10 @@ pub trait SimplePipeline: std::fmt::Debug + Send + Sync + 'static {
     );
 }
 
-pub trait SimplePipelineDesc: std::fmt::Debug {
-    type Pipeline: SimplePipeline;
+pub trait SimplePipelineDesc<'a>: std::fmt::Debug {
+    type Pipeline: SimplePipeline<'a>;
 
-    fn pipeline<'a>(
+    fn pipeline(
         &mut self,
         asset_manager: &'a AssetManager,
         renderer: &'a mut crate::graphics::Renderer,
@@ -112,7 +112,7 @@ pub trait SimplePipelineDesc: std::fmt::Debug {
 
     // TODO: Support other types of shaders like compute.
     // Also support having only a vertex shader.
-    fn load_shader<'a>(&self, asset_manager: &'a AssetManager) -> &'a Shader;
+    fn load_shader(&self, asset_manager: &'a AssetManager) -> &'a Shader;
     fn create_layout(&self, _device: &mut wgpu::Device) -> Vec<wgpu::BindGroupLayout>;
     fn rasterization_state_desc(&self) -> wgpu::RasterizationStateDescriptor;
     fn primitive_topology(&self) -> wgpu::PrimitiveTopology;
@@ -132,10 +132,10 @@ pub trait SimplePipelineDesc: std::fmt::Debug {
         false
     }
 
-    fn build<'a>(
+    fn build(
         self,
-        device: &wgpu::Device,
-        bind_group_layouts: &Vec<wgpu::BindGroupLayout>,
+        renderer: &'a mut Renderer,
+        bind_group_layouts: &'a Vec<wgpu::BindGroupLayout>,
     ) -> Self::Pipeline;
 }
 

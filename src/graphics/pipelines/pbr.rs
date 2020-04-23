@@ -8,7 +8,7 @@ use crate::{
         pipeline::VertexStateBuilder,
         Pipeline,
         SimplePipeline,
-        SimplePipelineDesc, renderer::DEPTH_FORMAT, resources::RenderTarget,
+        SimplePipelineDesc, renderer::DEPTH_FORMAT, resources::RenderTarget, Renderer,
     },
     scene::systems::{PreparePBR, RenderPBR},
     AssetManager,
@@ -21,8 +21,8 @@ pub struct PBRPipeline {
     global_bind_group: wgpu::BindGroup,
 }
 
-impl SimplePipeline for PBRPipeline {
-    fn prepare<'a>(
+impl<'a> SimplePipeline<'a> for PBRPipeline {
+    fn prepare(
         &'a mut self,
         device: &'a mut wgpu::Device,
         pipeline: &'a Pipeline,
@@ -44,7 +44,7 @@ impl SimplePipeline for PBRPipeline {
         prepare_pbr.run_now(world);
     }
 
-    fn render<'a>(
+    fn render(
         &'a mut self,
         render_pass: &'a mut wgpu::RenderPass<'a>,
         pipeline: &'a Pipeline,
@@ -65,10 +65,10 @@ impl SimplePipeline for PBRPipeline {
 #[derive(Debug, Default)]
 pub struct PBRPipelineDesc;
 
-impl SimplePipelineDesc for PBRPipelineDesc {
+impl<'a> SimplePipelineDesc<'a> for PBRPipelineDesc {
     type Pipeline = PBRPipeline;
 
-    fn load_shader<'a>(
+    fn load_shader(
         &self,
         asset_manager: &'a crate::AssetManager,
     ) -> &'a crate::graphics::material::Shader {
@@ -252,21 +252,21 @@ impl SimplePipelineDesc for PBRPipelineDesc {
 
     fn build(
         self,
-        device: &wgpu::Device,
+        renderer: &mut Renderer,
         bind_group_layouts: &Vec<wgpu::BindGroupLayout>,
     ) -> PBRPipeline {
         // This data needs to be saved and passed onto the pipeline.
-        let constants_buffer = device.create_buffer_with_data(
+        let constants_buffer = renderer.device.create_buffer_with_data(
             bytemuck::bytes_of(&GlobalUniforms::default()),
             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         );
 
-        let lighting_buffer = device.create_buffer_with_data(
+        let lighting_buffer = renderer.device.create_buffer_with_data(
             bytemuck::bytes_of(&LightingUniform::default()),
             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         );
 
-        let global_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let global_bind_group = renderer.device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layouts[0],
             bindings: &[
                 wgpu::Binding {

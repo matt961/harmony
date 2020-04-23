@@ -5,21 +5,21 @@ use std::collections::HashMap;
 
 // TODO: handle node dependencies somehow.
 #[derive(Debug)]
-pub struct RenderGraphNode {
+pub struct RenderGraphNode<'a> {
     pub(crate) pipeline: Pipeline,
-    pub(crate) simple_pipeline: Box<dyn SimplePipeline>,
+    pub(crate) simple_pipeline: Box<dyn SimplePipeline<'a>>,
     pub use_output_from_dependency: bool,
     pub create_cubemap_from_output: bool,
 }
 
-pub struct RenderGraph {
-    nodes: HashMap<String, RenderGraphNode>,
+pub struct RenderGraph<'a> {
+    nodes: HashMap<String, RenderGraphNode<'a>>,
     pub(crate) outputs: HashMap<String, Option<RenderTarget>>,
     dep_graph: DepGraph<String>,
     pub(crate) local_bind_group_layout: wgpu::BindGroupLayout,
 }
 
-impl RenderGraph {
+impl<'a> RenderGraph<'a> {
     pub(crate) fn new(device: &wgpu::Device) -> Self {
         let mut dep_graph = DepGraph::new();
         dep_graph.register_node("root".to_string());
@@ -43,10 +43,10 @@ impl RenderGraph {
 
     /// `input` - Optional view to render from. useful for post processing chains.
     /// 'output' - Optional view to render to. If none is set it will render to the latest frame buffer.
-    pub fn add<T: SimplePipelineDesc + Sized + 'static, T2: Into<String>>(
-        &mut self,
-        asset_manager: &AssetManager,
-        renderer: &mut Renderer,
+    pub fn add<T: SimplePipelineDesc<'static> + Sized, T2: Into<String>>(
+        &'static mut self,
+        asset_manager: &'static AssetManager,
+        renderer: &'static mut Renderer,
         name: T2,
         mut pipeline_desc: T,
         dependency: Vec<&str>,
@@ -56,17 +56,19 @@ impl RenderGraph {
         create_cubemap_from_output: bool,
     ) {
         let name = name.into();
-        let pipeline = pipeline_desc.pipeline(
-            asset_manager,
-            renderer,
-            if include_local_bindings {
-                Some(&self.local_bind_group_layout)
-            } else {
-                None
-            },
-        );
-        let built_pipeline: Box<dyn SimplePipeline> =
-            Box::new(pipeline_desc.build(&renderer.device, &pipeline.bind_group_layouts));
+        let pipeline = {
+            pipeline_desc.pipeline(
+                asset_manager,
+                renderer,
+                if include_local_bindings {
+                    Some(&self.local_bind_group_layout)
+                } else {
+                    None
+                },
+            )
+        };
+        let built_pipeline: Box<dyn SimplePipeline<'_>> =
+            Box::new(pipeline_desc.build(renderer, &pipeline.bind_group_layouts));
         let node = RenderGraphNode {
             pipeline,
             simple_pipeline: built_pipeline,
@@ -97,7 +99,7 @@ impl RenderGraph {
     }
 
     /// Allows you to take the output render target for a given node.
-    pub fn get<T>(&self, name: T) -> &RenderGraphNode
+    pub fn get<T>(&self, name: T) -> &RenderGraphNode<'a>
     where
         T: Into<String>,
     {
@@ -105,11 +107,11 @@ impl RenderGraph {
     }
 
     pub(crate) fn render(
-        &mut self,
-        renderer: &mut Renderer,
-        asset_manager: &mut AssetManager,
-        world: &mut specs::World,
-        frame: Option<&wgpu::SwapChainOutput>,
+        &'a mut self,
+        renderer: &'a mut Renderer,
+        asset_manager: &'a mut AssetManager,
+        world: &'a mut specs::World,
+        frame: Option<&'a wgpu::SwapChainOutput>,
     ) -> wgpu::CommandBuffer {
         let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Root Encoder"),

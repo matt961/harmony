@@ -3,7 +3,7 @@ use crate::{
     graphics::{material::Material, Pipeline},
     scene::components::{Mesh, Transform},
 };
-use specs::{ReadStorage, System, WriteStorage};
+use specs::{ReadStorage, System};
 
 pub struct RenderUnlit<'a> {
     pub(crate) render_pass: &'a mut wgpu::RenderPass<'a>,

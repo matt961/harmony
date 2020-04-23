@@ -1,7 +1,7 @@
 use crate::{
     graphics::{
         pipeline::VertexStateBuilder, resources::RenderTarget, Pipeline, SimplePipeline,
-        SimplePipelineDesc,
+        SimplePipelineDesc, Renderer,
     },
     AssetManager,
 };
@@ -11,8 +11,8 @@ pub struct SpecularBRDFPipeline {
     size: f32,
 }
 
-impl SimplePipeline for SpecularBRDFPipeline {
-    fn prepare<'a>(
+impl<'a> SimplePipeline<'a> for SpecularBRDFPipeline {
+    fn prepare(
         &'a mut self,
         _device: &'a mut wgpu::Device,
         _pipeline: &'a Pipeline,
@@ -23,7 +23,7 @@ impl SimplePipeline for SpecularBRDFPipeline {
     ) {
     }
 
-    fn render<'a>(
+    fn render(
         &'a mut self,
         render_pass: &'a mut wgpu::RenderPass<'a>,
         pipeline: &'a Pipeline,
@@ -46,10 +46,10 @@ impl SpecularBRDFPipelineDesc {
     }
 }
 
-impl SimplePipelineDesc for SpecularBRDFPipelineDesc {
+impl<'a> SimplePipelineDesc<'a> for SpecularBRDFPipelineDesc {
     type Pipeline = SpecularBRDFPipeline;
 
-    fn load_shader<'a>(
+    fn load_shader(
         &self,
         asset_manager: &'a crate::AssetManager,
     ) -> &'a crate::graphics::material::Shader {
@@ -95,7 +95,7 @@ impl SimplePipelineDesc for SpecularBRDFPipelineDesc {
 
     fn build(
         self,
-        _device: &wgpu::Device,
+        _renderer: &mut Renderer,
         _bind_group_layouts: &Vec<wgpu::BindGroupLayout>,
     ) -> SpecularBRDFPipeline {
         SpecularBRDFPipeline { size: self.size }
