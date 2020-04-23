@@ -23,7 +23,7 @@ pub struct Skybox {
 }
 
 impl Skybox {
-    pub fn new<T>(app: &mut Application, texture: T, size: f32) -> Self
+    pub fn new<T>(app: &'static mut Application, texture: T, size: f32) -> Self
     where
         T: Into<String>,
     {

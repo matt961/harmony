@@ -43,10 +43,10 @@ impl<'a> RenderGraph<'a> {
 
     /// `input` - Optional view to render from. useful for post processing chains.
     /// 'output' - Optional view to render to. If none is set it will render to the latest frame buffer.
-    pub fn add<T: SimplePipelineDesc<'static> + Sized, T2: Into<String>>(
-        &'static mut self,
-        asset_manager: &'static AssetManager,
-        renderer: &'static mut Renderer,
+    pub fn add<T: SimplePipelineDesc<'a> + Sized, T2: Into<String>>(
+        &'a mut self,
+        asset_manager: &'a AssetManager,
+        renderer: &'a mut Renderer,
         name: T2,
         mut pipeline_desc: T,
         dependency: Vec<&str>,
@@ -67,7 +67,7 @@ impl<'a> RenderGraph<'a> {
                 },
             )
         };
-        let built_pipeline: Box<dyn SimplePipeline<'_>> =
+        let built_pipeline: Box<dyn SimplePipeline<'a>> =
             Box::new(pipeline_desc.build(renderer, &pipeline.bind_group_layouts));
         let node = RenderGraphNode {
             pipeline,

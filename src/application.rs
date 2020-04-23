@@ -32,7 +32,7 @@ pub trait AppState {
     }
 }
 
-pub struct Application {
+pub struct Application<'a> {
     pub renderer: Renderer,
     gui_renderer: Option<crate::gui::Renderer>,
     gui_renderables: Vec<crate::gui::renderables::Renderable>,
@@ -45,10 +45,10 @@ pub struct Application {
     pub(crate) console: crate::gui::components::default::Console,
     pub input: Input,
     pub current_scene: Scene<'static>,
-    pub render_graph: Option<RenderGraph<'static>>,
+    pub render_graph: Option<RenderGraph<'a>>,
 }
 
-impl Application {
+impl<'a> Application<'a> {
     /// Creates a new application.
     /// # Arguments
     ///

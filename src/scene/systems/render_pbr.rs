@@ -27,13 +27,13 @@ impl<'a> System<'a> for RenderPBR<'a> {
 
     fn run(
         &mut self,
-        (meshes, materials, mut transforms, skybox): Self::SystemData,
+        (meshes, materials, transforms, skybox): Self::SystemData,
     ) {
         use specs::Join;
         if transforms.count() == 0 || skybox.is_none() {
             return;
         }
-        let skybox = skybox.unwrap();
+        let skybox = skybox.as_ref().unwrap();
         
         self.render_pass.set_pipeline(&self.pipeline.pipeline);
         self.render_pass.set_bind_group(1, self.global_bind_group, &[]);
