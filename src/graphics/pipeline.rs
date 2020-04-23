@@ -14,13 +14,13 @@ pub struct BindGroupWithData {
 }
 
 pub trait SimplePipeline<'a>: std::fmt::Debug + Send + Sync + 'a {
-    fn prepare(
-        &'a mut self,
-        device: &'a mut wgpu::Device,
-        pipeline: &'a Pipeline,
-        encoder: &'a mut wgpu::CommandEncoder,
-        world: &'a mut specs::World,
-        asset_manager: &'a mut AssetManager,
+    fn prepare<'b>(
+        &'b mut self,
+        device: &'b mut wgpu::Device,
+        pipeline: &'b Pipeline,
+        encoder: &'b mut wgpu::CommandEncoder,
+        world: &'b mut specs::World,
+        asset_manager: &'b mut AssetManager,
         input: Option<&RenderTarget>,
     );
 
@@ -36,11 +36,11 @@ pub trait SimplePipeline<'a>: std::fmt::Debug + Send + Sync + 'a {
 pub trait SimplePipelineDesc<'a>: std::fmt::Debug {
     type Pipeline: SimplePipeline<'a>;
 
-    fn pipeline(
+    fn pipeline<'b>(
         &mut self,
-        asset_manager: &'a AssetManager,
-        renderer: &'a mut crate::graphics::Renderer,
-        local_bind_group_layout: Option<&'a wgpu::BindGroupLayout>,
+        asset_manager: &'b AssetManager,
+        renderer: &'b mut crate::graphics::Renderer,
+        local_bind_group_layout: Option<&'b wgpu::BindGroupLayout>,
     ) -> Pipeline {
         let mut_device = &mut renderer.device;
         let shader = self.load_shader(asset_manager);
@@ -112,7 +112,7 @@ pub trait SimplePipelineDesc<'a>: std::fmt::Debug {
 
     // TODO: Support other types of shaders like compute.
     // Also support having only a vertex shader.
-    fn load_shader(&self, asset_manager: &'a AssetManager) -> &'a Shader;
+    fn load_shader<'b>(&self, asset_manager: &'b AssetManager) -> &'b Shader;
     fn create_layout(&self, _device: &mut wgpu::Device) -> Vec<wgpu::BindGroupLayout>;
     fn rasterization_state_desc(&self) -> wgpu::RasterizationStateDescriptor;
     fn primitive_topology(&self) -> wgpu::PrimitiveTopology;
@@ -132,10 +132,10 @@ pub trait SimplePipelineDesc<'a>: std::fmt::Debug {
         false
     }
 
-    fn build(
+    fn build<'b>(
         self,
-        renderer: &'a mut Renderer,
-        bind_group_layouts: &'a Vec<wgpu::BindGroupLayout>,
+        renderer: &'b mut Renderer,
+        bind_group_layouts: &'b Vec<wgpu::BindGroupLayout>,
     ) -> Self::Pipeline;
 }
 

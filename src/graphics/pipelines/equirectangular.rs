@@ -14,14 +14,14 @@ pub struct CubeProjectionPipeline {
 }
 
 impl<'a> SimplePipeline<'a> for CubeProjectionPipeline {
-    fn prepare(
-        &'a mut self,
-        device: &'a mut wgpu::Device,
-        pipeline: &'a Pipeline,
-        _encoder: &'a mut wgpu::CommandEncoder,
-        _world: &'a mut specs::World,
-        asset_manager: &'a mut AssetManager,
-        _input: Option<&RenderTarget>,
+    fn prepare<'b>(
+        &'b mut self,
+        device: &'b mut wgpu::Device,
+        pipeline: &'b Pipeline,
+        encoder: &'b mut wgpu::CommandEncoder,
+        world: &'b mut specs::World,
+        asset_manager: &'b mut AssetManager,
+        input: Option<&RenderTarget>,
     ) {
         let image = asset_manager.get_image(self.texture.clone());
 
@@ -69,10 +69,10 @@ impl CubeProjectionPipelineDesc {
 impl<'a> SimplePipelineDesc<'a> for CubeProjectionPipelineDesc {
     type Pipeline = CubeProjectionPipeline;
 
-    fn load_shader(
+    fn load_shader<'b>(
         &self,
-        asset_manager: &'a crate::AssetManager,
-    ) -> &'a crate::graphics::material::Shader {
+        asset_manager: &'b crate::AssetManager,
+    ) -> &'b crate::graphics::material::Shader {
         asset_manager.get_shader("hdr_to_cubemap.shader")
     }
 

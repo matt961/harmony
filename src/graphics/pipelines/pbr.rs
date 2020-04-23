@@ -22,14 +22,14 @@ pub struct PBRPipeline {
 }
 
 impl<'a> SimplePipeline<'a> for PBRPipeline {
-    fn prepare(
-        &'a mut self,
-        device: &'a mut wgpu::Device,
-        pipeline: &'a Pipeline,
-        encoder: &'a mut wgpu::CommandEncoder,
-        world: &'a mut specs::World,
-        asset_manager: &'a mut AssetManager,
-        _input: Option<&RenderTarget>,
+    fn prepare<'b>(
+        &'b mut self,
+        device: &'b mut wgpu::Device,
+        pipeline: &'b Pipeline,
+        encoder: &'b mut wgpu::CommandEncoder,
+        world: &'b mut specs::World,
+        asset_manager: &'b mut AssetManager,
+        input: Option<&RenderTarget>,
     ) {
         let mut prepare_pbr = PreparePBR {
             device,
@@ -68,10 +68,10 @@ pub struct PBRPipelineDesc;
 impl<'a> SimplePipelineDesc<'a> for PBRPipelineDesc {
     type Pipeline = PBRPipeline;
 
-    fn load_shader(
+    fn load_shader<'b>(
         &self,
-        asset_manager: &'a crate::AssetManager,
-    ) -> &'a crate::graphics::material::Shader {
+        asset_manager: &'b crate::AssetManager,
+    ) -> &'b crate::graphics::material::Shader {
         asset_manager.get_shader("pbr.shader")
     }
 

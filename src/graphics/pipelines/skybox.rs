@@ -37,14 +37,14 @@ unsafe impl Zeroable for SkyboxUniforms {}
 unsafe impl Pod for SkyboxUniforms {}
 
 impl<'a> SimplePipeline<'a> for SkyboxPipeline {
-    fn prepare(
-        &'a mut self,
-        device: &'a mut wgpu::Device,
-        _pipeline: &'a Pipeline,
-        _encoder: &'a mut wgpu::CommandEncoder,
-        world: &'a mut specs::World,
-        _asset_manager: &'a mut AssetManager,
-        _input: Option<&RenderTarget>,
+    fn prepare<'b>(
+        &'b mut self,
+        device: &'b mut wgpu::Device,
+        pipeline: &'b Pipeline,
+        encoder: &'b mut wgpu::CommandEncoder,
+        world: &'b mut specs::World,
+        asset_manager: &'b mut AssetManager,
+        input: Option<&RenderTarget>,
     ) {
         // Buffers can/are stored per mesh.
         let mut encoder =
@@ -116,10 +116,10 @@ pub struct SkyboxPipelineDesc;
 impl<'a> SimplePipelineDesc<'a> for SkyboxPipelineDesc {
     type Pipeline = SkyboxPipeline;
 
-    fn load_shader(
+    fn load_shader<'b>(
         &self,
-        asset_manager: &'a crate::AssetManager,
-    ) -> &'a crate::graphics::material::Shader {
+        asset_manager: &'b crate::AssetManager,
+    ) -> &'b crate::graphics::material::Shader {
         asset_manager.get_shader("skybox.shader")
     }
 
@@ -202,10 +202,10 @@ impl<'a> SimplePipelineDesc<'a> for SkyboxPipelineDesc {
         vertex_state_builder
     }
 
-    fn build(
+    fn build<'b>(
         self,
-        renderer: &'a mut Renderer,
-        bind_group_layouts: &'a Vec<wgpu::BindGroupLayout>,
+        renderer: &'b mut Renderer,
+        bind_group_layouts: &'b Vec<wgpu::BindGroupLayout>,
     ) -> SkyboxPipeline {
         // This data needs to be saved and passed onto the pipeline.
         let constants_buffer = renderer.device.create_buffer_with_data(

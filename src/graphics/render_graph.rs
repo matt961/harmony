@@ -43,10 +43,10 @@ impl<'a> RenderGraph<'a> {
 
     /// `input` - Optional view to render from. useful for post processing chains.
     /// 'output' - Optional view to render to. If none is set it will render to the latest frame buffer.
-    pub fn add<T: SimplePipelineDesc<'a> + Sized, T2: Into<String>>(
+    pub fn add<'b, T: SimplePipelineDesc<'a> + Sized, T2: Into<String>>(
         &'a mut self,
-        asset_manager: &'a AssetManager,
-        renderer: &'a mut Renderer,
+        asset_manager: &'b AssetManager,
+        renderer: &'b mut Renderer,
         name: T2,
         mut pipeline_desc: T,
         dependency: Vec<&str>,
@@ -106,12 +106,12 @@ impl<'a> RenderGraph<'a> {
         self.nodes.get(&name.into()).unwrap()
     }
 
-    pub(crate) fn render(
+    pub(crate) fn render<'b>(
         &'a mut self,
-        renderer: &'a mut Renderer,
-        asset_manager: &'a mut AssetManager,
-        world: &'a mut specs::World,
-        frame: Option<&'a wgpu::SwapChainOutput>,
+        renderer: &'b mut Renderer,
+        asset_manager: &'b mut AssetManager,
+        world: &'b mut specs::World,
+        frame: Option<&'b wgpu::SwapChainOutput>,
     ) -> wgpu::CommandBuffer {
         let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Root Encoder"),

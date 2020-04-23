@@ -34,13 +34,13 @@ pub struct SpecularPipeline {
 }
 
 impl<'a> SimplePipeline<'a> for SpecularPipeline {
-    fn prepare(
-        &'a mut self,
-        device: &'a mut wgpu::Device,
-        pipeline: &'a Pipeline,
-        _encoder: &'a mut wgpu::CommandEncoder,
-        _world: &'a mut specs::World,
-        _asset_manager: &'a mut AssetManager,
+    fn prepare<'b>(
+        &'b mut self,
+        device: &'b mut wgpu::Device,
+        pipeline: &'b Pipeline,
+        encoder: &'b mut wgpu::CommandEncoder,
+        world: &'b mut specs::World,
+        asset_manager: &'b mut AssetManager,
         input: Option<&RenderTarget>,
     ) {
         self.bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -99,10 +99,10 @@ impl SpecularPipelineDesc {
 impl<'a> SimplePipelineDesc<'a> for SpecularPipelineDesc {
     type Pipeline = SpecularPipeline;
 
-    fn load_shader(
+    fn load_shader<'b>(
         &self,
-        asset_manager: &'a crate::AssetManager,
-    ) -> &'a crate::graphics::material::Shader {
+        asset_manager: &'b crate::AssetManager,
+    ) -> &'b crate::graphics::material::Shader {
         asset_manager.get_shader("specular.shader")
     }
 
