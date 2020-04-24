@@ -11,24 +11,24 @@ pub struct SpecularBRDFPipeline {
     size: f32,
 }
 
-impl<'a> SimplePipeline<'a> for SpecularBRDFPipeline {
-    fn prepare<'b>(
-        &'b mut self,
-        device: &'b mut wgpu::Device,
-        pipeline: &'b Pipeline,
-        encoder: &'b mut wgpu::CommandEncoder,
-        world: &'b mut specs::World,
-        asset_manager: &'b mut AssetManager,
+impl SimplePipeline for SpecularBRDFPipeline {
+    fn prepare(
+        &mut self,
+        device: &mut wgpu::Device,
+        pipeline: &Pipeline,
+        encoder: &mut wgpu::CommandEncoder,
+        world: &mut specs::World,
+        asset_manager: &mut AssetManager,
         input: Option<&RenderTarget>,
     ) {
     }
 
-    fn render(
-        &'a mut self,
-        render_pass: &'a mut wgpu::RenderPass<'a>,
+    fn render<'a>(
+        &mut self,
+        render_pass: &mut wgpu::RenderPass<'a>,
         pipeline: &'a Pipeline,
-        _asset_manager: &'a mut AssetManager,
-        _world: &'a mut specs::World,
+        _asset_manager: &mut AssetManager,
+        _world: &mut specs::World,
     ) {
         render_pass.set_pipeline(&pipeline.pipeline);
         render_pass.draw(0..3, 0..1);
@@ -46,13 +46,13 @@ impl SpecularBRDFPipelineDesc {
     }
 }
 
-impl<'a> SimplePipelineDesc<'a> for SpecularBRDFPipelineDesc {
+impl SimplePipelineDesc for SpecularBRDFPipelineDesc {
     type Pipeline = SpecularBRDFPipeline;
 
-    fn load_shader<'b>(
+    fn load_shader<'a>(
         &self,
-        asset_manager: &'b crate::AssetManager,
-    ) -> &'b crate::graphics::material::Shader {
+        asset_manager: &'a crate::AssetManager,
+    ) -> &'a crate::graphics::material::Shader {
         asset_manager.get_shader("specular_brdf.shader")
     }
 

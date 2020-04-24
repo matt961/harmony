@@ -5,21 +5,21 @@ use std::collections::HashMap;
 
 // TODO: handle node dependencies somehow.
 #[derive(Debug)]
-pub struct RenderGraphNode<'a> {
+pub struct RenderGraphNode {
     pub(crate) pipeline: Pipeline,
-    pub(crate) simple_pipeline: Box<dyn SimplePipeline<'a>>,
+    pub(crate) simple_pipeline: Box<dyn SimplePipeline>,
     pub use_output_from_dependency: bool,
     pub create_cubemap_from_output: bool,
 }
 
-pub struct RenderGraph<'a> {
-    nodes: HashMap<String, RenderGraphNode<'a>>,
+pub struct RenderGraph {
+    nodes: HashMap<String, RenderGraphNode>,
     pub(crate) outputs: HashMap<String, Option<RenderTarget>>,
     dep_graph: DepGraph<String>,
     pub(crate) local_bind_group_layout: wgpu::BindGroupLayout,
 }
 
-impl<'a> RenderGraph<'a> {
+impl RenderGraph {
     pub(crate) fn new(device: &wgpu::Device) -> Self {
         let mut dep_graph = DepGraph::new();
         dep_graph.register_node("root".to_string());
@@ -43,10 +43,10 @@ impl<'a> RenderGraph<'a> {
 
     /// `input` - Optional view to render from. useful for post processing chains.
     /// 'output' - Optional view to render to. If none is set it will render to the latest frame buffer.
-    pub fn add<'b, T: SimplePipelineDesc<'a> + Sized, T2: Into<String>>(
-        &'a mut self,
-        asset_manager: &'b AssetManager,
-        renderer: &'b mut Renderer,
+    pub fn add<T: SimplePipelineDesc + Sized + 'static, T2: Into<String>>(
+        &mut self,
+        asset_manager: &AssetManager,
+        renderer: &mut Renderer,
         name: T2,
         mut pipeline_desc: T,
         dependency: Vec<&str>,
@@ -67,7 +67,7 @@ impl<'a> RenderGraph<'a> {
                 },
             )
         };
-        let built_pipeline: Box<dyn SimplePipeline<'a>> =
+        let built_pipeline: Box<dyn SimplePipeline> =
             Box::new(pipeline_desc.build(renderer, &pipeline.bind_group_layouts));
         let node = RenderGraphNode {
             pipeline,
@@ -99,7 +99,7 @@ impl<'a> RenderGraph<'a> {
     }
 
     /// Allows you to take the output render target for a given node.
-    pub fn get<T>(&self, name: T) -> &RenderGraphNode<'a>
+    pub fn get<T>(&self, name: T) -> &RenderGraphNode
     where
         T: Into<String>,
     {
@@ -107,11 +107,11 @@ impl<'a> RenderGraph<'a> {
     }
 
     pub(crate) fn render(
-        &'a mut self,
-        renderer: &'a mut Renderer,
-        asset_manager: &'a mut AssetManager,
-        world: &'a mut specs::World,
-        frame: Option<&'a wgpu::SwapChainOutput>,
+        &mut self,
+        renderer: &mut Renderer,
+        asset_manager: &mut AssetManager,
+        world: &mut specs::World,
+        frame: Option<&wgpu::SwapChainOutput>,
     ) -> wgpu::CommandBuffer {
         let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Root Encoder"),

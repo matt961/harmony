@@ -36,14 +36,14 @@ impl Default for SkyboxUniforms {
 unsafe impl Zeroable for SkyboxUniforms {}
 unsafe impl Pod for SkyboxUniforms {}
 
-impl<'a> SimplePipeline<'a> for SkyboxPipeline {
-    fn prepare<'b>(
-        &'b mut self,
-        device: &'b mut wgpu::Device,
-        pipeline: &'b Pipeline,
-        encoder: &'b mut wgpu::CommandEncoder,
-        world: &'b mut specs::World,
-        asset_manager: &'b mut AssetManager,
+impl SimplePipeline for SkyboxPipeline {
+    fn prepare(
+        &mut self,
+        device: &mut wgpu::Device,
+        pipeline: &Pipeline,
+        encoder: &mut wgpu::CommandEncoder,
+        world: &mut specs::World,
+        asset_manager: &mut AssetManager,
         input: Option<&RenderTarget>,
     ) {
         // Buffers can/are stored per mesh.
@@ -88,12 +88,12 @@ impl<'a> SimplePipeline<'a> for SkyboxPipeline {
         
     }
 
-    fn render(
-        &'a mut self,
-        _render_pass: &'a mut wgpu::RenderPass<'a>,
-        _pipeline: &'a Pipeline,
-        _asset_manager: &'a mut AssetManager,
-        _world: &'a mut specs::World,
+    fn render<'a>(
+        &mut self,
+        _render_pass: &mut wgpu::RenderPass<'a>,
+        _pipeline: &Pipeline,
+        _asset_manager: &mut AssetManager,
+        _world: &mut specs::World,
     ) {
         // TODO: Move to system so lifetimes work.
         
@@ -113,13 +113,13 @@ impl<'a> SimplePipeline<'a> for SkyboxPipeline {
 #[derive(Debug, Default)]
 pub struct SkyboxPipelineDesc;
 
-impl<'a> SimplePipelineDesc<'a> for SkyboxPipelineDesc {
+impl SimplePipelineDesc for SkyboxPipelineDesc {
     type Pipeline = SkyboxPipeline;
 
-    fn load_shader<'b>(
+    fn load_shader<'a>(
         &self,
-        asset_manager: &'b crate::AssetManager,
-    ) -> &'b crate::graphics::material::Shader {
+        asset_manager: &'a crate::AssetManager,
+    ) -> &'a crate::graphics::material::Shader {
         asset_manager.get_shader("skybox.shader")
     }
 

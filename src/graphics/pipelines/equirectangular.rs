@@ -13,14 +13,14 @@ pub struct CubeProjectionPipeline {
     bind_group: Option<wgpu::BindGroup>,
 }
 
-impl<'a> SimplePipeline<'a> for CubeProjectionPipeline {
-    fn prepare<'b>(
-        &'b mut self,
-        device: &'b mut wgpu::Device,
-        pipeline: &'b Pipeline,
-        encoder: &'b mut wgpu::CommandEncoder,
-        world: &'b mut specs::World,
-        asset_manager: &'b mut AssetManager,
+impl SimplePipeline for CubeProjectionPipeline {
+    fn prepare(
+        &mut self,
+        device: &mut wgpu::Device,
+        pipeline: &Pipeline,
+        encoder: &mut wgpu::CommandEncoder,
+        world: &mut specs::World,
+        asset_manager: &mut AssetManager,
         input: Option<&RenderTarget>,
     ) {
         let image = asset_manager.get_image(self.texture.clone());
@@ -41,12 +41,12 @@ impl<'a> SimplePipeline<'a> for CubeProjectionPipeline {
         }));
     }
 
-    fn render(
+    fn render<'a>(
         &'a mut self,
-        render_pass: &'a mut wgpu::RenderPass<'a>,
+        render_pass: &mut wgpu::RenderPass<'a>,
         pipeline: &'a Pipeline,
-        _asset_manager: &'a mut AssetManager,
-        _world: &'a mut specs::World,
+        _asset_manager: &mut AssetManager,
+        _world: &mut specs::World,
     ) {
         render_pass.set_pipeline(&pipeline.pipeline);
         render_pass.set_bind_group(0, self.bind_group.as_ref().unwrap(), &[]);
@@ -66,13 +66,13 @@ impl CubeProjectionPipelineDesc {
     }
 }
 
-impl<'a> SimplePipelineDesc<'a> for CubeProjectionPipelineDesc {
+impl SimplePipelineDesc for CubeProjectionPipelineDesc {
     type Pipeline = CubeProjectionPipeline;
 
-    fn load_shader<'b>(
+    fn load_shader<'a>(
         &self,
-        asset_manager: &'b crate::AssetManager,
-    ) -> &'b crate::graphics::material::Shader {
+        asset_manager: &'a crate::AssetManager,
+    ) -> &'a crate::graphics::material::Shader {
         asset_manager.get_shader("hdr_to_cubemap.shader")
     }
 

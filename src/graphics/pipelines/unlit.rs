@@ -20,14 +20,14 @@ pub struct UnlitPipeline {
     global_bind_group: wgpu::BindGroup,
 }
 
-impl<'a> SimplePipeline<'a> for UnlitPipeline {
-    fn prepare<'b>(
-        &'b mut self,
-        device: &'b mut wgpu::Device,
-        pipeline: &'b Pipeline,
-        encoder: &'b mut wgpu::CommandEncoder,
-        world: &'b mut specs::World,
-        asset_manager: &'b mut AssetManager,
+impl SimplePipeline for UnlitPipeline {
+    fn prepare(
+        &mut self,
+        device: &mut wgpu::Device,
+        pipeline: &Pipeline,
+        encoder: &mut wgpu::CommandEncoder,
+        world: &mut specs::World,
+        asset_manager: &mut AssetManager,
         _input: Option<&RenderTarget>,
     ) {
         let mut prepare_unlit = PrepareUnlit {
@@ -41,14 +41,14 @@ impl<'a> SimplePipeline<'a> for UnlitPipeline {
         prepare_unlit.run_now(world);
     }
 
-    fn render(
+    fn render<'a>(
         &'a mut self,
-        render_pass: &'a mut wgpu::RenderPass<'a>,
+        render_pass: &mut wgpu::RenderPass<'a>,
         pipeline: &'a Pipeline,
         asset_manager: &'a mut AssetManager,
-        world: &'a mut specs::World,
+        world: &mut specs::World,
     ) {
-        let mut render_unlit = RenderUnlit::<'a> {
+        let mut render_unlit = RenderUnlit {
             render_pass,
             asset_manager,
             pipeline,
@@ -62,13 +62,13 @@ impl<'a> SimplePipeline<'a> for UnlitPipeline {
 #[derive(Debug, Default)]
 pub struct UnlitPipelineDesc;
 
-impl<'a> SimplePipelineDesc<'a> for UnlitPipelineDesc {
+impl SimplePipelineDesc for UnlitPipelineDesc {
     type Pipeline = UnlitPipeline;
 
-    fn load_shader<'b>(
+    fn load_shader<'a>(
         &self,
-        asset_manager: &'b crate::AssetManager,
-    ) -> &'b crate::graphics::material::Shader {
+        asset_manager: &'a crate::AssetManager,
+    ) -> &'a crate::graphics::material::Shader {
         asset_manager.get_shader("unlit.shader")
     }
 

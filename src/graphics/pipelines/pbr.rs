@@ -21,14 +21,14 @@ pub struct PBRPipeline {
     global_bind_group: wgpu::BindGroup,
 }
 
-impl<'a> SimplePipeline<'a> for PBRPipeline {
-    fn prepare<'b>(
-        &'b mut self,
-        device: &'b mut wgpu::Device,
-        pipeline: &'b Pipeline,
-        encoder: &'b mut wgpu::CommandEncoder,
-        world: &'b mut specs::World,
-        asset_manager: &'b mut AssetManager,
+impl SimplePipeline for PBRPipeline {
+    fn prepare(
+        &mut self,
+        device: &mut wgpu::Device,
+        pipeline: &Pipeline,
+        encoder: &mut wgpu::CommandEncoder,
+        world: &mut specs::World,
+        asset_manager: &mut AssetManager,
         input: Option<&RenderTarget>,
     ) {
         let mut prepare_pbr = PreparePBR {
@@ -44,12 +44,12 @@ impl<'a> SimplePipeline<'a> for PBRPipeline {
         prepare_pbr.run_now(world);
     }
 
-    fn render(
-        &'a mut self,
-        render_pass: &'a mut wgpu::RenderPass<'a>,
-        pipeline: &'a Pipeline,
-        asset_manager: &'a mut AssetManager,
-        world: &'a mut specs::World,
+    fn render<'a>(
+        &mut self,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        pipeline: &Pipeline,
+        asset_manager: &mut AssetManager,
+        world: &mut specs::World,
     ) {
         let mut render_pbr = RenderPBR {
             render_pass,
@@ -65,13 +65,13 @@ impl<'a> SimplePipeline<'a> for PBRPipeline {
 #[derive(Debug, Default)]
 pub struct PBRPipelineDesc;
 
-impl<'a> SimplePipelineDesc<'a> for PBRPipelineDesc {
+impl SimplePipelineDesc for PBRPipelineDesc {
     type Pipeline = PBRPipeline;
 
-    fn load_shader<'b>(
+    fn load_shader<'a>(
         &self,
-        asset_manager: &'b crate::AssetManager,
-    ) -> &'b crate::graphics::material::Shader {
+        asset_manager: &'a crate::AssetManager,
+    ) -> &'a crate::graphics::material::Shader {
         asset_manager.get_shader("pbr.shader")
     }
 

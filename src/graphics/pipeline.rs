@@ -13,34 +13,34 @@ pub struct BindGroupWithData {
     pub(crate) bind_group: wgpu::BindGroup,
 }
 
-pub trait SimplePipeline<'a>: std::fmt::Debug + Send + Sync + 'a {
-    fn prepare<'b>(
-        &'b mut self,
-        device: &'b mut wgpu::Device,
-        pipeline: &'b Pipeline,
-        encoder: &'b mut wgpu::CommandEncoder,
-        world: &'b mut specs::World,
-        asset_manager: &'b mut AssetManager,
+pub trait SimplePipeline: std::fmt::Debug + Send + Sync + 'static {
+    fn prepare(
+        &mut self,
+        device: &mut wgpu::Device,
+        pipeline: &Pipeline,
+        encoder: &mut wgpu::CommandEncoder,
+        world: &mut specs::World,
+        asset_manager: &mut AssetManager,
         input: Option<&RenderTarget>,
     );
 
-    fn render(
+    fn render<'a>(
         &'a mut self,
-        render_pass: &'a mut wgpu::RenderPass<'a>,
+        render_pass: &mut wgpu::RenderPass<'a>,
         pipeline: &'a Pipeline,
         asset_manager: &'a mut AssetManager,
-        world: &'a mut specs::World,
+        world: &mut specs::World,
     );
 }
 
-pub trait SimplePipelineDesc<'a>: std::fmt::Debug {
-    type Pipeline: SimplePipeline<'a>;
+pub trait SimplePipelineDesc: std::fmt::Debug {
+    type Pipeline: SimplePipeline;
 
-    fn pipeline<'b>(
+    fn pipeline(
         &mut self,
-        asset_manager: &'b AssetManager,
-        renderer: &'b mut crate::graphics::Renderer,
-        local_bind_group_layout: Option<&'b wgpu::BindGroupLayout>,
+        asset_manager: &AssetManager,
+        renderer: &mut crate::graphics::Renderer,
+        local_bind_group_layout: Option<&wgpu::BindGroupLayout>,
     ) -> Pipeline {
         let mut_device = &mut renderer.device;
         let shader = self.load_shader(asset_manager);
@@ -112,7 +112,7 @@ pub trait SimplePipelineDesc<'a>: std::fmt::Debug {
 
     // TODO: Support other types of shaders like compute.
     // Also support having only a vertex shader.
-    fn load_shader<'b>(&self, asset_manager: &'b AssetManager) -> &'b Shader;
+    fn load_shader<'a>(&self, asset_manager: &'a AssetManager) -> &'a Shader;
     fn create_layout(&self, _device: &mut wgpu::Device) -> Vec<wgpu::BindGroupLayout>;
     fn rasterization_state_desc(&self) -> wgpu::RasterizationStateDescriptor;
     fn primitive_topology(&self) -> wgpu::PrimitiveTopology;
