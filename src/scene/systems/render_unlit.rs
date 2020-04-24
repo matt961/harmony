@@ -5,18 +5,18 @@ use crate::{
 };
 use specs::{ReadStorage, System};
 
-pub struct RenderUnlit<'a> {
-    pub(crate) render_pass: &'a mut wgpu::RenderPass<'a>,
+pub struct RenderUnlit<'a, 'b> {
+    pub(crate) render_pass: &'b mut wgpu::RenderPass<'a>,
     pub(crate) asset_manager: &'a AssetManager,
     pub(crate) pipeline: &'a Pipeline,
     pub(crate) global_bind_group: &'a wgpu::BindGroup,
 }
 
-impl<'a> System<'a> for RenderUnlit<'a> {
+impl<'a, 'b, 'c> System<'c> for RenderUnlit<'a, 'b> {
     type SystemData = (
-        ReadStorage<'a, Mesh>,
-        ReadStorage<'a, crate::scene::components::Material>,
-        ReadStorage<'a, Transform>,
+        ReadStorage<'c, Mesh>,
+        ReadStorage<'c, crate::scene::components::Material>,
+        ReadStorage<'c, Transform>,
     );
 
     fn run(&mut self, (meshes, materials, transforms): Self::SystemData) {
